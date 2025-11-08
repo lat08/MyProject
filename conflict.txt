@@ -1,0 +1,3 @@
+Line 1: This is the original content
+Line 2: Feature 1 changes
+Line 3: More content here
