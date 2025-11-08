@@ -1,5 +1,5 @@
 # MyProject -  Complete Update Main update
-# MyProject -  Complete Update feature 5
+# MyProject -  Complete Update feature 6
 
 Combined changes from stash and feature-4
 
