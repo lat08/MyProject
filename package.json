@@ -1,0 +1,32 @@
+{
+  "name": "myproject",
+  "version": "1.0.0",
+  "description": "Combined changes from stash and feature-4",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+
+  "jest": {
+    "testEnvironment": "jsdom",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ]
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lat08/MyProject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lat08/MyProject/issues"
+  },
+  "homepage": "https://github.com/lat08/MyProject#readme"
+}
