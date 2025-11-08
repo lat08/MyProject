@@ -1,6 +1,6 @@
-# MyProject - Feature 4
+# MyProject -  Complete Update
 
-Changes from feature-4 branch
+Combined changes from stash and feature-4
 
 ## Mô tả
 Dự án thực hành Git, GitHub và CI/CD
