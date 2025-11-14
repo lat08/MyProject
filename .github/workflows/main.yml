@@ -66,6 +66,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history (required by Heroku)
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -88,6 +90,9 @@ jobs:
         run: |
           # Heroku CLI automatically uses HEROKU_API_KEY environment variable
           heroku auth:whoami
+          
+          # Unshallow repository if needed (Heroku requires full git history)
+          git fetch --unshallow || true
           
           # Set up git remote with credentials embedded in URL
           # Format: https://:API_KEY@git.heroku.com/APP_NAME.git
