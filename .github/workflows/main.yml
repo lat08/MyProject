@@ -142,3 +142,243 @@ jobs:
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Application deployed to: https://$HEROKU_APP_NAME.herokuapp.com" >> $GITHUB_STEP_SUMMARY
           echo "- Deployment completed successfully" >> $GITHUB_STEP_SUMMARY
+
+  generate-report-and-notify:
+    needs: [build-and-test, deploy-heroku]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+      
+      - name: Generate CI/CD Report
+        id: generate_report
+        run: |
+          mkdir -p reports
+          
+          # Get workflow information
+          WORKFLOW_RUN_ID="${{ github.run_id }}"
+          WORKFLOW_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          BRANCH="${{ github.ref_name }}"
+          AUTHOR="${{ github.actor }}"
+          
+          # Determine overall status
+          BUILD_STATUS="${{ needs.build-and-test.result }}"
+          DEPLOY_STATUS="${{ needs.deploy-heroku.result }}"
+          
+          if [ "$BUILD_STATUS" = "success" ] && [ "$DEPLOY_STATUS" = "success" ] || [ "$DEPLOY_STATUS" = "skipped" ]; then
+            OVERALL_STATUS="✅ SUCCESS"
+            STATUS_COLOR="green"
+          else
+            OVERALL_STATUS="❌ FAILED"
+            STATUS_COLOR="red"
+          fi
+          
+          # Create HTML report
+          cat > reports/cicd-report.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>CI/CD Pipeline Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+              .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+              h1 { color: #333; border-bottom: 3px solid #0366d6; padding-bottom: 10px; }
+              .status { font-size: 24px; font-weight: bold; padding: 15px; border-radius: 5px; margin: 20px 0; }
+              .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+              .failed { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+              .info-section { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+              .info-row { display: flex; margin: 10px 0; }
+              .info-label { font-weight: bold; width: 200px; color: #555; }
+              .info-value { color: #333; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background: #0366d6; color: white; }
+              tr:hover { background: #f5f5f5; }
+              .badge { display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+              .badge-success { background: #28a745; color: white; }
+              .badge-failed { background: #dc3545; color: white; }
+              .badge-skipped { background: #6c757d; color: white; }
+              .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; text-align: center; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🚀 CI/CD Pipeline Report</h1>
+              
+              <div class="status $STATUS_COLOR">
+                $OVERALL_STATUS
+              </div>
+              
+              <div class="info-section">
+                <h2>📋 Workflow Information</h2>
+                <div class="info-row">
+                  <span class="info-label">Workflow Run ID:</span>
+                  <span class="info-value">#$WORKFLOW_RUN_ID</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Branch:</span>
+                  <span class="info-value">$BRANCH</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Commit SHA:</span>
+                  <span class="info-value">$COMMIT_SHA</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Commit Message:</span>
+                  <span class="info-value">$COMMIT_MESSAGE</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Author:</span>
+                  <span class="info-value">$AUTHOR</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Workflow URL:</span>
+                  <span class="info-value"><a href="$WORKFLOW_RUN_URL">View on GitHub</a></span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Timestamp:</span>
+                  <span class="info-value">$(date -u +"%Y-%m-%d %H:%M:%S UTC")</span>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <h2>📊 Job Results</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Job Name</th>
+                      <th>Status</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Build and Test</td>
+                      <td><span class="badge badge-$BUILD_STATUS">$BUILD_STATUS</span></td>
+                      <td>Tests run on Node.js 18.x and 20.x</td>
+                    </tr>
+                    <tr>
+                      <td>Deploy to Heroku</td>
+                      <td><span class="badge badge-${DEPLOY_STATUS:-skipped}">${DEPLOY_STATUS:-skipped}</span></td>
+                      <td>$([ "$DEPLOY_STATUS" = "success" ] && echo "Application deployed successfully" || echo "Deployment skipped or failed")</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="info-section">
+                <h2>🔗 Quick Links</h2>
+                <ul>
+                  <li><a href="$WORKFLOW_RUN_URL">View Workflow Run</a></li>
+                  <li><a href="${{ github.server_url }}/${{ github.repository }}">Repository</a></li>
+                  $([ "$DEPLOY_STATUS" = "success" ] && echo "<li><a href=\"https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com\">View Deployed App</a></li>")
+                </ul>
+              </div>
+              
+              <div class="footer">
+                <p>Generated automatically by GitHub Actions CI/CD Pipeline</p>
+                <p>Repository: ${{ github.repository }} | Run ID: $WORKFLOW_RUN_ID</p>
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          # Create Markdown report
+          cat > reports/cicd-report.md << EOF
+          # 🚀 CI/CD Pipeline Report
+          
+          ## Status: $OVERALL_STATUS
+          
+          ### Workflow Information
+          - **Workflow Run ID**: #$WORKFLOW_RUN_ID
+          - **Branch**: $BRANCH
+          - **Commit SHA**: $COMMIT_SHA
+          - **Commit Message**: $COMMIT_MESSAGE
+          - **Author**: $AUTHOR
+          - **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Workflow URL**: $WORKFLOW_RUN_URL
+          
+          ### Job Results
+          
+          | Job Name | Status | Details |
+          |----------|--------|---------|
+          | Build and Test | $BUILD_STATUS | Tests run on Node.js 18.x and 20.x |
+          | Deploy to Heroku | ${DEPLOY_STATUS:-skipped} | $([ "$DEPLOY_STATUS" = "success" ] && echo "Application deployed successfully" || echo "Deployment skipped or failed") |
+          
+          ### Quick Links
+          - [View Workflow Run]($WORKFLOW_RUN_URL)
+          - [Repository](${{ github.server_url }}/${{ github.repository }})
+          $([ "$DEPLOY_STATUS" = "success" ] && echo "- [View Deployed App](https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com)")
+          
+          ---
+          *Generated automatically by GitHub Actions CI/CD Pipeline*
+          EOF
+          
+          echo "report_path=reports/cicd-report.html" >> $GITHUB_OUTPUT
+          echo "report_md_path=reports/cicd-report.md" >> $GITHUB_OUTPUT
+          echo "overall_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+      
+      - name: Upload CI/CD Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cicd-report
+          path: reports/
+          retention-days: 30
+      
+      - name: Send Email Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: |
+            CI/CD Pipeline ${{ steps.generate_report.outputs.overall_status }} - ${{ github.repository }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions
+          body: |
+            <h2>CI/CD Pipeline Report</h2>
+            <p><strong>Status:</strong> ${{ steps.generate_report.outputs.overall_status }}</p>
+            <p><strong>Repository:</strong> ${{ github.repository }}</p>
+            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+            <p><strong>Commit:</strong> ${{ github.event.head_commit.message }}</p>
+            <p><strong>Author:</strong> ${{ github.actor }}</p>
+            <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
+            <hr>
+            <h3>Job Results:</h3>
+            <ul>
+              <li><strong>Build and Test:</strong> ${{ needs.build-and-test.result }}</li>
+              <li><strong>Deploy to Heroku:</strong> ${{ needs.deploy-heroku.result || 'skipped' }}</li>
+            </ul>
+            ${{ needs.deploy-heroku.result == 'success' && '<p><strong>Deployed App:</strong> Application has been successfully deployed to Heroku.</p>' || '' }}
+            <hr>
+            <p><small>This is an automated email from GitHub Actions CI/CD Pipeline.</small></p>
+          html: true
+          ignore_cert: true
+        continue-on-error: true
+      
+      - name: Display Report Summary
+        if: always()
+        run: |
+          echo "## 📊 CI/CD Report Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Report Files:" >> $GITHUB_STEP_SUMMARY
+          echo "- HTML Report: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Markdown Report: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Overall Status:" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.generate_report.outputs.overall_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Email Notification:" >> $GITHUB_STEP_SUMMARY
+          echo "- Email sent to: ${{ secrets.NOTIFICATION_EMAIL }}" >> $GITHUB_STEP_SUMMARY

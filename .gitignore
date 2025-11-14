@@ -15,6 +15,7 @@ dist/
 build/
 .next/
 out/
+reports/
 *.log
 
 # Environment variables
