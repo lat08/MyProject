@@ -88,7 +88,16 @@ jobs:
         run: |
           # Heroku CLI automatically uses HEROKU_API_KEY environment variable
           heroku auth:whoami
-          heroku git:remote -a $HEROKU_APP_NAME
+          
+          # Set up git remote with credentials embedded in URL
+          # Format: https://:API_KEY@git.heroku.com/APP_NAME.git
+          git remote add heroku https://:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git || true
+          git remote set-url heroku https://:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git
+          
+          # Verify remote is configured
+          git remote -v
+          
+          # Push to Heroku
           git push heroku HEAD:main --force
       
       - name: Set Heroku Config Vars (Secrets)
