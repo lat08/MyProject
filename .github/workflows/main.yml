@@ -29,9 +29,22 @@ jobs:
       - name: Install dependencies
         run: npm install
       
+      - name: Run tests
+        run: npm test
+        continue-on-error: false
+      
       - name: Run tests with coverage
         run: npm run test:coverage
         continue-on-error: false
+      
+      - name: Display test summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests completed for Node.js ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          if [ -d "coverage" ]; then
+            echo "- Coverage report generated" >> $GITHUB_STEP_SUMMARY
+          fi
       
       - name: Build application
         run: npm run build
