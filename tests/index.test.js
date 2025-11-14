@@ -22,10 +22,27 @@ describe('Home Page', () => {
 
   it('renders feature cards', () => {
     render(<Home />)
-    const nextjsCard = screen.getByText(/Next.js/i)
-    const herokuCard = screen.getByText(/Heroku/i)
-    expect(nextjsCard).toBeInTheDocument()
-    expect(herokuCard).toBeInTheDocument()
+    
+    // Check for card titles - the arrow is rendered as → character
+    const nextjsCardTitle = screen.getByText((content, element) => {
+      return element.tagName.toLowerCase() === 'h2' && content.includes('Next.js')
+    })
+    expect(nextjsCardTitle).toBeInTheDocument()
+    
+    const herokuCardTitle = screen.getByText((content, element) => {
+      return element.tagName.toLowerCase() === 'h2' && content.includes('Heroku')
+    })
+    expect(herokuCardTitle).toBeInTheDocument()
+    
+    const cicdCardTitle = screen.getByText((content, element) => {
+      return element.tagName.toLowerCase() === 'h2' && content.includes('CI/CD')
+    })
+    expect(cicdCardTitle).toBeInTheDocument()
+    
+    const githubActionsCardTitle = screen.getByText((content, element) => {
+      return element.tagName.toLowerCase() === 'h2' && content.includes('GitHub Actions')
+    })
+    expect(githubActionsCardTitle).toBeInTheDocument()
   })
 })
 
