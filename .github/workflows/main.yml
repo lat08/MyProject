@@ -76,40 +76,44 @@ jobs:
         run: |
           curl https://cli-assets.heroku.com/install.sh | sh
       
-      - name: Login to Heroku
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      - name: Configure Git
         run: |
-          echo "$HEROKU_API_KEY" | heroku auth:token
-          heroku auth:whoami
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
       
       - name: Deploy to Heroku
         env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
         run: |
+          # Heroku CLI automatically uses HEROKU_API_KEY environment variable
+          heroku auth:whoami
           heroku git:remote -a $HEROKU_APP_NAME
-          git push heroku main --force
+          git push heroku HEAD:main --force
       
       - name: Set Heroku Config Vars (Secrets)
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+        continue-on-error: true
         run: |
           # Set environment variables from GitHub secrets
           # Example: Set NODE_ENV
-          heroku config:set NODE_ENV=production -a $HEROKU_APP_NAME
+          heroku config:set NODE_ENV=production -a $HEROKU_APP_NAME || true
           
           # Set custom secrets (uncomment and configure as needed)
-          # heroku config:set DATABASE_URL="${{ secrets.DATABASE_URL }}" -a $HEROKU_APP_NAME
-          # heroku config:set API_KEY="${{ secrets.API_KEY }}" -a $HEROKU_APP_NAME
-          # heroku config:set SECRET_KEY="${{ secrets.SECRET_KEY }}" -a $HEROKU_APP_NAME
+          # heroku config:set DATABASE_URL="${{ secrets.DATABASE_URL }}" -a $HEROKU_APP_NAME || true
+          # heroku config:set API_KEY="${{ secrets.API_KEY }}" -a $HEROKU_APP_NAME || true
+          # heroku config:set SECRET_KEY="${{ secrets.SECRET_KEY }}" -a $HEROKU_APP_NAME || true
       
       - name: Run post-deploy commands
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+        continue-on-error: true
         run: |
-          heroku run npm run build -a $HEROKU_APP_NAME || true
+          # Build is already done during deployment, this is optional
+          heroku restart -a $HEROKU_APP_NAME || true
       
       - name: Display deployment info
         if: always()
