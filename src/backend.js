@@ -1,16 +1,18 @@
 const express = require('express');
 
-function setupServer() {
+function setupServer(port = 3000) {
     const app = express();
-    const PORT = 3000;
+    const PORT = port;
     
     app.get('/', (req, res) => {
         res.send('Backend is running');
     });
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
+    
+    return server;
 }
 
 module.exports = { setupServer };

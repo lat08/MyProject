@@ -1,6 +1,18 @@
 const { initializeUI } = require('../src/app');
 
 describe('App Tests - initializeUI Function', () => {
+    let originalConsoleLog;
+
+    beforeEach(() => {
+        // Suppress console.log trong test để tránh warning
+        originalConsoleLog = console.log;
+        console.log = jest.fn();
+    });
+
+    afterEach(() => {
+        // Khôi phục console.log
+        console.log = originalConsoleLog;
+    });
     // Test 1: Kiểm tra hàm tạo được header element
     test('should create header element', () => {
         const header = initializeUI();
