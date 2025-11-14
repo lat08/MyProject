@@ -1,38 +1,53 @@
 {
   "name": "myproject",
   "version": "1.0.0",
-  "description": "Combined changes from stash and feature-4",
+  "description": "Next.js application with Heroku deployment",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
-
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "test": "jest",
-    "test:coverage": "jest --coverage",
-    "build": "echo \"Build completed\""
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "express": "^4.18.2"
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^6.1.0"
   },
   "jest": {
     "testEnvironment": "jsdom",
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
-      "src/**/*.js"
+      "src/**/*.{js,jsx}",
+      "pages/**/*.{js,jsx}",
+      "components/**/*.{js,jsx}"
     ],
     "testMatch": [
-      "**/tests/**/*.test.js"
-    ]
+      "**/tests/**/*.test.{js,jsx}"
+    ],
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lat08/MyProject.git"
   },
-  "keywords": [],
+  "keywords": ["nextjs", "react", "heroku"],
   "author": "",
   "license": "ISC",
   "bugs": {

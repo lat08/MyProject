@@ -1,0 +1,24 @@
+{
+  "name": "MyProject",
+  "description": "Next.js application deployed on Heroku",
+  "repository": "https://github.com/lat08/MyProject",
+  "keywords": ["nextjs", "react", "heroku"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Environment (production/development)",
+      "value": "production"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}
+
