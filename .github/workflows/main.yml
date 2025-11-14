@@ -335,6 +335,102 @@ jobs:
           path: reports/
           retention-days: 30
       
+      - name: Create Email HTML Content
+        id: create_email
+        env:
+          OVERALL_STATUS: ${{ steps.generate_report.outputs.overall_status }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          AUTHOR: ${{ github.actor }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BUILD_STATUS: ${{ needs.build-and-test.result }}
+          DEPLOY_STATUS: ${{ needs.deploy-heroku.result || 'skipped' }}
+          HEROKU_APP: ${{ secrets.HEROKU_APP_NAME }}
+        run: |
+          DEPLOYED_APP=""
+          if [ "$DEPLOY_STATUS" = "success" ] && [ -n "$HEROKU_APP" ]; then
+            DEPLOYED_APP="<p><strong>Deployed App:</strong> <a href=\"https://$HEROKU_APP.herokuapp.com\">https://$HEROKU_APP.herokuapp.com</a></p>"
+          fi
+          
+          STATUS_CLASS="failed"
+          if echo "$OVERALL_STATUS" | grep -q "SUCCESS"; then
+            STATUS_CLASS="success"
+          fi
+          
+          cat > reports/email-body.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+              .container { max-width: 600px; margin: 20px auto; padding: 20px; background-color: #ffffff; }
+              h2 { color: #0366d6; border-bottom: 2px solid #0366d6; padding-bottom: 10px; margin-top: 0; }
+              h3 { color: #555; margin-top: 20px; }
+              .status { font-size: 18px; font-weight: bold; padding: 10px; border-radius: 5px; margin: 15px 0; }
+              .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+              .failed { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+              .info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+              .info-row { margin: 8px 0; }
+              .info-label { font-weight: bold; color: #555; }
+              ul { margin: 10px 0; padding-left: 20px; }
+              li { margin: 5px 0; }
+              a { color: #0366d6; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+              hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+              .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 12px; text-align: center; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2>🚀 CI/CD Pipeline Report</h2>
+              
+              <div class="status $STATUS_CLASS">
+                $OVERALL_STATUS
+              </div>
+              
+              <div class="info">
+                <div class="info-row">
+                  <span class="info-label">Repository:</span> $REPOSITORY
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Branch:</span> $BRANCH
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Commit:</span> $COMMIT_MSG
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Author:</span> $AUTHOR
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Workflow Run:</span> 
+                  <a href="$WORKFLOW_URL">View Details</a>
+                </div>
+              </div>
+              
+              <h3>Job Results:</h3>
+              <ul>
+                <li><strong>Build and Test:</strong> $BUILD_STATUS</li>
+                <li><strong>Deploy to Heroku:</strong> $DEPLOY_STATUS</li>
+              </ul>
+              
+              $DEPLOYED_APP
+              
+              <hr>
+              
+              <div class="footer">
+                <p>This is an automated email from GitHub Actions CI/CD Pipeline</p>
+                <p>Repository: $REPOSITORY | Run ID: ${{ github.run_id }}</p>
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          echo "email_file=reports/email-body.html" >> $GITHUB_OUTPUT
+      
       - name: Send Email Notification
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -347,24 +443,8 @@ jobs:
             CI/CD Pipeline ${{ steps.generate_report.outputs.overall_status }} - ${{ github.repository }}
           to: ${{ secrets.NOTIFICATION_EMAIL }}
           from: GitHub Actions
-          body: |
-            <h2>CI/CD Pipeline Report</h2>
-            <p><strong>Status:</strong> ${{ steps.generate_report.outputs.overall_status }}</p>
-            <p><strong>Repository:</strong> ${{ github.repository }}</p>
-            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
-            <p><strong>Commit:</strong> ${{ github.event.head_commit.message }}</p>
-            <p><strong>Author:</strong> ${{ github.actor }}</p>
-            <p><strong>Workflow Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></p>
-            <hr>
-            <h3>Job Results:</h3>
-            <ul>
-              <li><strong>Build and Test:</strong> ${{ needs.build-and-test.result }}</li>
-              <li><strong>Deploy to Heroku:</strong> ${{ needs.deploy-heroku.result || 'skipped' }}</li>
-            </ul>
-            ${{ needs.deploy-heroku.result == 'success' && '<p><strong>Deployed App:</strong> Application has been successfully deployed to Heroku.</p>' || '' }}
-            <hr>
-            <p><small>This is an automated email from GitHub Actions CI/CD Pipeline.</small></p>
-          html: true
+          body_path: ${{ steps.create_email.outputs.email_file }}
+          content_type: text/html
           ignore_cert: true
         continue-on-error: true
       
