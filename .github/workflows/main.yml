@@ -15,7 +15,8 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [16.x, 18.x, 20.x]
+      fail-fast: false  # Continue running all matrix jobs even if one fails
     
     steps:
       - name: Checkout code
@@ -40,8 +41,9 @@ jobs:
       - name: Display test summary
         if: always()
         run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Tests completed for Node.js ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results Summary for Node.js ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Node.js Version: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "coverage" ]; then
             echo "- Coverage report generated" >> $GITHUB_STEP_SUMMARY
           fi
@@ -61,7 +63,10 @@ jobs:
   deploy-heroku:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: |
+      github.ref == 'refs/heads/main' && 
+      github.event_name == 'push' &&
+      needs.build-and-test.result == 'success'
     
     steps:
       - name: Checkout code
