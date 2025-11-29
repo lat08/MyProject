@@ -1,6 +1,6 @@
 # Hướng dẫn Triển khai Heroku
 
-## Cấu hình GitHub Secrets
+## Cấu hình GitHub Sesdcsdccrets
 
 Để tự động triển khai qua GitHub Actions, bạn cần cấu hình các secrets sau:
 
